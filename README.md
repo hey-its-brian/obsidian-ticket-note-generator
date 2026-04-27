@@ -4,6 +4,8 @@ An Obsidian plugin that creates a ticket folder with a pre-filled note and a cod
 
 Ported from `obsidian_new_ticket.sh`.
 
+NOTE: This is a pretty specific plugin with my exact needs in mind, but if you're reading this and need something similar, have at it.
+
 ## What it creates
 
 For ticket `ABC-123` with the default settings:
@@ -49,6 +51,10 @@ If the ticket folder already exists, the plugin aborts with a notice — it will
 | Setting | Default | Description |
 | --- | --- | --- |
 | Tickets folder | `Tickets` | Vault-relative folder where ticket folders are created. Nested paths like `Work/Tickets` are fine; missing parents are created. |
+| Add tags to note | on | When on, writes tags on their own lines after the frontmatter (not inside it). When off, no tags are written. |
+| Tag 1 | `#status/in-progress` | Primary tag. Shown only when "Add tags to note" is on. Leading `#` is optional — added automatically if missing. |
+| Tag 2 (optional) | empty | Second tag. Skipped if blank. |
+| Tag 3 (optional) | empty | Third tag. Skipped if blank. |
 
 The Jira base URL (`https://dchbx.atlassian.net/browse`) and the `EnrollApp` application tag are currently hardcoded in `main.js`.
 

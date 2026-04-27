@@ -2,9 +2,19 @@ const { Plugin, PluginSettingTab, Setting, Modal, Notice, normalizePath } = requ
 
 const DEFAULT_SETTINGS = {
   ticketsFolder: 'Tickets',
+  tagsEnabled: true,
+  tag1: '#status/in-progress',
+  tag2: '',
+  tag3: '',
 };
 
 const BASE_URL = 'https://dchbx.atlassian.net/browse';
+
+function formatTag(raw) {
+  const trimmed = (raw || '').trim();
+  if (!trimmed) return '';
+  return trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
+}
 
 class NewTicketPlugin extends Plugin {
   async onload() {
@@ -61,6 +71,16 @@ class NewTicketPlugin extends Plugin {
 
     const today = new Date().toISOString().slice(0, 10);
 
+    let tagsBlock = '';
+    if (this.settings.tagsEnabled) {
+      const tags = [this.settings.tag1, this.settings.tag2, this.settings.tag3]
+        .map(formatTag)
+        .filter((t) => t.length > 0);
+      if (tags.length > 0) {
+        tagsBlock = tags.join('\n') + '\n';
+      }
+    }
+
     const noteContent = `---
 application:
   - EnrollApp
@@ -72,8 +92,7 @@ ticket_subject:
 start: ${today}
 ---
 
-#status/in-progress
-[[${ticket}-code.rb]]
+${tagsBlock}[[${ticket}-code.rb]]
 `;
 
     const codeContent = `# ${ticket}
@@ -168,6 +187,38 @@ class NewTicketSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.ticketsFolder)
           .onChange(async (value) => {
             this.plugin.settings.ticketsFolder = value.trim() || DEFAULT_SETTINGS.ticketsFolder;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName('Add tags to note')
+      .setDesc('When on, write tags on their own lines after the frontmatter (not inside it).')
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.tagsEnabled).onChange(async (value) => {
+          this.plugin.settings.tagsEnabled = value;
+          await this.plugin.saveSettings();
+          this.display();
+        }),
+      );
+
+    if (this.plugin.settings.tagsEnabled) {
+      this.addTagSetting('Tag 1', 'tag1', DEFAULT_SETTINGS.tag1);
+      this.addTagSetting('Tag 2 (optional)', 'tag2', '');
+      this.addTagSetting('Tag 3 (optional)', 'tag3', '');
+    }
+  }
+
+  addTagSetting(name, key, placeholder) {
+    new Setting(this.containerEl)
+      .setName(name)
+      .setDesc('Leading "#" is optional — it will be added if missing.')
+      .addText((text) =>
+        text
+          .setPlaceholder(placeholder)
+          .setValue(this.plugin.settings[key])
+          .onChange(async (value) => {
+            this.plugin.settings[key] = value;
             await this.plugin.saveSettings();
           }),
       );
