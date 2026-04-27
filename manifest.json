@@ -1,0 +1,9 @@
+{
+  "id": "new-ticket",
+  "name": "New Ticket",
+  "version": "1.0.0",
+  "minAppVersion": "1.0.0",
+  "description": "Create a ticket folder with a note and code file from a sidebar button.",
+  "author": "Brian Meyer",
+  "isDesktopOnly": false
+}
