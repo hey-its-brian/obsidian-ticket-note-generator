@@ -137,31 +137,52 @@ ${ticketUrl ? `# ${ticketUrl}\n` : ''}# Created: ${today}
       return;
     }
 
-    // Walk up to the folder that sits directly under the tickets folder.
+    // Walk up to the folder that sits directly under the tickets folder
+    // (or directly under the resolved folder, for an already-resolved ticket).
     let ticketFolder = activeFile.parent;
-    while (ticketFolder && ticketFolder.parent && ticketFolder.parent.path !== baseFolder) {
+    while (
+      ticketFolder &&
+      ticketFolder.parent &&
+      ticketFolder.parent.path !== baseFolder &&
+      ticketFolder.parent.path !== resolvedFolder
+    ) {
       ticketFolder = ticketFolder.parent;
     }
 
-    if (!ticketFolder || !ticketFolder.parent || ticketFolder.parent.path !== baseFolder) {
+    const parentPath = ticketFolder && ticketFolder.parent ? ticketFolder.parent.path : null;
+    if (!ticketFolder || (parentPath !== baseFolder && parentPath !== resolvedFolder)) {
       new Notice(`Active file is not inside a ticket folder under "${baseFolder}".`);
       return;
     }
-    if (ticketFolder.path === resolvedFolder) {
-      new Notice('This ticket is already resolved.');
-      return;
-    }
+    const alreadyResolved = parentPath === resolvedFolder;
 
     const inProgressTag = formatTag(this.settings.tag1) || DEFAULT_SETTINGS.tag1;
     const resolvedTag = formatTag(this.settings.resolvedTag) || DEFAULT_SETTINGS.resolvedTag;
+    const today = new Date().toISOString().slice(0, 10);
 
     try {
       for (const child of [...ticketFolder.children]) {
-        if (child.extension === 'md') {
-          await this.app.vault.process(child, (content) =>
-            content.split(inProgressTag).join(resolvedTag),
-          );
-        }
+        if (child.extension !== 'md') continue;
+
+        // Swap the in-progress tag for the resolved tag in the note body.
+        // vault.process is editor-aware, so an open note reflects the change.
+        await this.app.vault.process(child, (content) => {
+          let out = content.split(inProgressTag).join(resolvedTag);
+          if (this.settings.tagsEnabled && !out.includes(resolvedTag)) {
+            out = `${out.replace(/\s*$/, '')}\n${resolvedTag}\n`;
+          }
+          return out;
+        });
+
+        // Stamp the resolution date into the frontmatter.
+        await this.app.fileManager.processFrontMatter(child, (fm) => {
+          fm.resolved = today;
+        });
+      }
+
+      if (alreadyResolved) {
+        new Notice(`Updated resolved ticket: ${ticketFolder.name}`);
+        return;
       }
 
       await this.ensureFolder(resolvedFolder);

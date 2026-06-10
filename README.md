@@ -51,7 +51,14 @@ With any file from a ticket folder open:
 - **Ribbon icon** (left sidebar): click the check-circle icon, or
 - **Command palette**: "New Ticket: Resolve current ticket".
 
-This swaps the in-progress tag (Tag 1) for the resolved tag in every `.md` file in the ticket folder, then moves the whole folder into the resolved folder (default `Tickets/Resolved/ABC-123`). Links are updated by Obsidian's file manager. If a folder with the same name already exists under Resolved, the move is aborted with a notice.
+For every `.md` file in the ticket folder this:
+
+- swaps the in-progress tag (Tag 1) for the resolved tag (adding the resolved tag if no in-progress tag was found), and
+- adds a `resolved:` date to the frontmatter set to today.
+
+It then moves the whole folder into the resolved folder (default `Tickets/Resolved/ABC-123`). Links are updated by Obsidian's file manager. If a folder with the same name already exists under Resolved, the move is aborted with a notice.
+
+Resolving is idempotent and editor-aware: running it on a ticket already in the resolved folder re-applies the tag swap and refreshes the `resolved:` date without moving anything, so you can re-run it to fix a ticket whose tag didn't get updated.
 
 ## Settings
 
