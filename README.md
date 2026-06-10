@@ -60,6 +60,12 @@ It then moves the whole folder into the resolved folder (default `Tickets/Resolv
 
 Resolving is idempotent and editor-aware: running it on a ticket already in the resolved folder re-applies the tag swap and refreshes the `resolved:` date without moving anything, so you can re-run it to fix a ticket whose tag didn't get updated.
 
+### Backfill tags in the resolved folder
+
+**Command palette**: "New Ticket: Backfill tags in resolved folder".
+
+Sweeps every `.md` file under the resolved folder (at any depth) and swaps any remaining in-progress tag (Tag 1) for the resolved tag. Use it as a one-shot cleanup for tickets that were resolved before the tag swap worked. It reports how many notes it changed. It does **not** add or change the `resolved:` date, since the original resolution dates are unknown.
+
 ## Settings
 
 **Settings → Community plugins → New Ticket**

@@ -41,6 +41,12 @@ class NewTicketPlugin extends Plugin {
       callback: () => this.resolveActiveTicket(),
     });
 
+    this.addCommand({
+      id: 'backfill-resolved-tags',
+      name: 'Backfill tags in resolved folder',
+      callback: () => this.backfillResolvedTags(),
+    });
+
     this.addSettingTab(new NewTicketSettingTab(this.app, this));
   }
 
@@ -196,6 +202,43 @@ ${ticketUrl ? `# ${ticketUrl}\n` : ''}# Created: ${today}
     } catch (err) {
       console.error('New Ticket plugin failed to resolve ticket', err);
       new Notice(`Failed to resolve ticket: ${err.message || err}`);
+    }
+  }
+
+  async backfillResolvedTags() {
+    const baseFolder = normalizePath((this.settings.ticketsFolder || DEFAULT_SETTINGS.ticketsFolder).trim());
+    const resolvedName = (this.settings.resolvedFolder || DEFAULT_SETTINGS.resolvedFolder).trim();
+    const resolvedFolder = normalizePath(`${baseFolder}/${resolvedName}`);
+
+    const inProgressTag = formatTag(this.settings.tag1) || DEFAULT_SETTINGS.tag1;
+    const resolvedTag = formatTag(this.settings.resolvedTag) || DEFAULT_SETTINGS.resolvedTag;
+
+    // Every markdown file under the resolved folder, at any depth.
+    const prefix = `${resolvedFolder}/`;
+    const files = this.app.vault
+      .getMarkdownFiles()
+      .filter((f) => f.path.startsWith(prefix));
+
+    if (files.length === 0) {
+      new Notice(`No notes found under "${resolvedFolder}".`);
+      return;
+    }
+
+    let changed = 0;
+    try {
+      for (const file of files) {
+        let didChange = false;
+        await this.app.vault.process(file, (content) => {
+          if (!content.includes(inProgressTag)) return content;
+          didChange = true;
+          return content.split(inProgressTag).join(resolvedTag);
+        });
+        if (didChange) changed++;
+      }
+      new Notice(`Backfill complete: updated ${changed} of ${files.length} note(s).`);
+    } catch (err) {
+      console.error('New Ticket plugin failed to backfill resolved tags', err);
+      new Notice(`Backfill failed: ${err.message || err}`);
     }
   }
 }
