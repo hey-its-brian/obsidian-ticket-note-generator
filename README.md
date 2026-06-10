@@ -60,6 +60,7 @@ This swaps the in-progress tag (Tag 1) for the resolved tag in every `.md` file 
 | Setting | Default | Description |
 | --- | --- | --- |
 | Tickets folder | `Tickets` | Vault-relative folder where ticket folders are created. Nested paths like `Work/Tickets` are fine; missing parents are created. |
+| Ticket base URL | `https://dchbx.atlassian.net/browse` | Base URL for ticket links — the ticket number is appended. Leave blank to omit `ticket_url` from the note and the URL comment from the code file. |
 | Add tags to note | on | When on, writes tags on their own lines after the frontmatter (not inside it). When off, no tags are written. |
 | Tag 1 | `#status/in-progress` | Primary tag. Shown only when "Add tags to note" is on. Leading `#` is optional — added automatically if missing. |
 | Tag 2 (optional) | empty | Second tag. Skipped if blank. |
@@ -67,7 +68,7 @@ This swaps the in-progress tag (Tag 1) for the resolved tag in every `.md` file 
 | Resolved folder | `Resolved` | Subfolder of the tickets folder where resolved tickets are moved. |
 | Resolved tag | `#status/resolved` | Tag that replaces Tag 1 in the ticket's `.md` files when resolving. |
 
-The Jira base URL (`https://dchbx.atlassian.net/browse`) and the `EnrollApp` application tag are currently hardcoded in `main.js`.
+The `EnrollApp` application tag is currently hardcoded in `main.js`.
 
 ## Install (local / development)
 

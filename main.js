@@ -8,9 +8,8 @@ const DEFAULT_SETTINGS = {
   tag3: '',
   resolvedFolder: 'Resolved',
   resolvedTag: '#status/resolved',
+  baseUrl: 'https://dchbx.atlassian.net/browse',
 };
-
-const BASE_URL = 'https://dchbx.atlassian.net/browse';
 
 function formatTag(raw) {
   const trimmed = (raw || '').trim();
@@ -83,6 +82,9 @@ class NewTicketPlugin extends Plugin {
 
     const today = new Date().toISOString().slice(0, 10);
 
+    const baseUrl = (this.settings.baseUrl || '').trim().replace(/\/+$/, '');
+    const ticketUrl = baseUrl ? `${baseUrl}/${ticket}` : '';
+
     let tagsBlock = '';
     if (this.settings.tagsEnabled) {
       const tags = [this.settings.tag1, this.settings.tag2, this.settings.tag3]
@@ -98,8 +100,7 @@ application:
   - EnrollApp
 type: ticket
 ticket_number: ${ticket}
-ticket_url: ${BASE_URL}/${ticket}
-ticket_subject:
+${ticketUrl ? `ticket_url: ${ticketUrl}\n` : ''}ticket_subject:
 
 start: ${today}
 ---
@@ -108,8 +109,7 @@ ${tagsBlock}[[${ticket}-code.rb]]
 `;
 
     const codeContent = `# ${ticket}
-# ${BASE_URL}/${ticket}
-# Created: ${today}
+${ticketUrl ? `# ${ticketUrl}\n` : ''}# Created: ${today}
 
 
 `;
@@ -251,6 +251,19 @@ class NewTicketSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.ticketsFolder)
           .onChange(async (value) => {
             this.plugin.settings.ticketsFolder = value.trim() || DEFAULT_SETTINGS.ticketsFolder;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName('Ticket base URL')
+      .setDesc('Base URL for ticket links — the ticket number is appended. Leave blank to skip ticket URLs entirely.')
+      .addText((text) =>
+        text
+          .setPlaceholder(DEFAULT_SETTINGS.baseUrl)
+          .setValue(this.plugin.settings.baseUrl)
+          .onChange(async (value) => {
+            this.plugin.settings.baseUrl = value.trim();
             await this.plugin.saveSettings();
           }),
       );
