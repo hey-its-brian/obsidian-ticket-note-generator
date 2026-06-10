@@ -44,6 +44,15 @@ After creation the note opens in the active pane.
 
 If the ticket folder already exists, the plugin aborts with a notice — it will not overwrite anything.
 
+## Resolving a ticket
+
+With any file from a ticket folder open:
+
+- **Ribbon icon** (left sidebar): click the check-circle icon, or
+- **Command palette**: "New Ticket: Resolve current ticket".
+
+This swaps the in-progress tag (Tag 1) for the resolved tag in every `.md` file in the ticket folder, then moves the whole folder into the resolved folder (default `Tickets/Resolved/ABC-123`). Links are updated by Obsidian's file manager. If a folder with the same name already exists under Resolved, the move is aborted with a notice.
+
 ## Settings
 
 **Settings → Community plugins → New Ticket**
@@ -55,6 +64,8 @@ If the ticket folder already exists, the plugin aborts with a notice — it will
 | Tag 1 | `#status/in-progress` | Primary tag. Shown only when "Add tags to note" is on. Leading `#` is optional — added automatically if missing. |
 | Tag 2 (optional) | empty | Second tag. Skipped if blank. |
 | Tag 3 (optional) | empty | Third tag. Skipped if blank. |
+| Resolved folder | `Resolved` | Subfolder of the tickets folder where resolved tickets are moved. |
+| Resolved tag | `#status/resolved` | Tag that replaces Tag 1 in the ticket's `.md` files when resolving. |
 
 The Jira base URL (`https://dchbx.atlassian.net/browse`) and the `EnrollApp` application tag are currently hardcoded in `main.js`.
 

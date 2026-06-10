@@ -6,6 +6,8 @@ const DEFAULT_SETTINGS = {
   tag1: '#status/in-progress',
   tag2: '',
   tag3: '',
+  resolvedFolder: 'Resolved',
+  resolvedTag: '#status/resolved',
 };
 
 const BASE_URL = 'https://dchbx.atlassian.net/browse';
@@ -28,6 +30,16 @@ class NewTicketPlugin extends Plugin {
       id: 'create-new-ticket',
       name: 'Create new ticket',
       callback: () => new TicketModal(this.app, this).open(),
+    });
+
+    this.addRibbonIcon('check-circle', 'Resolve ticket', () => {
+      this.resolveActiveTicket();
+    });
+
+    this.addCommand({
+      id: 'resolve-ticket',
+      name: 'Resolve current ticket',
+      callback: () => this.resolveActiveTicket(),
     });
 
     this.addSettingTab(new NewTicketSettingTab(this.app, this));
@@ -111,6 +123,58 @@ ${tagsBlock}[[${ticket}-code.rb]]
     } catch (err) {
       console.error('New Ticket plugin failed to create ticket', err);
       new Notice(`Failed to create ticket: ${err.message || err}`);
+    }
+  }
+
+  async resolveActiveTicket() {
+    const baseFolder = normalizePath((this.settings.ticketsFolder || DEFAULT_SETTINGS.ticketsFolder).trim());
+    const resolvedName = (this.settings.resolvedFolder || DEFAULT_SETTINGS.resolvedFolder).trim();
+    const resolvedFolder = normalizePath(`${baseFolder}/${resolvedName}`);
+
+    const activeFile = this.app.workspace.getActiveFile();
+    if (!activeFile) {
+      new Notice('No active file — open a ticket note first.');
+      return;
+    }
+
+    // Walk up to the folder that sits directly under the tickets folder.
+    let ticketFolder = activeFile.parent;
+    while (ticketFolder && ticketFolder.parent && ticketFolder.parent.path !== baseFolder) {
+      ticketFolder = ticketFolder.parent;
+    }
+
+    if (!ticketFolder || !ticketFolder.parent || ticketFolder.parent.path !== baseFolder) {
+      new Notice(`Active file is not inside a ticket folder under "${baseFolder}".`);
+      return;
+    }
+    if (ticketFolder.path === resolvedFolder) {
+      new Notice('This ticket is already resolved.');
+      return;
+    }
+
+    const inProgressTag = formatTag(this.settings.tag1) || DEFAULT_SETTINGS.tag1;
+    const resolvedTag = formatTag(this.settings.resolvedTag) || DEFAULT_SETTINGS.resolvedTag;
+
+    try {
+      for (const child of [...ticketFolder.children]) {
+        if (child.extension === 'md') {
+          await this.app.vault.process(child, (content) =>
+            content.split(inProgressTag).join(resolvedTag),
+          );
+        }
+      }
+
+      await this.ensureFolder(resolvedFolder);
+      const destination = normalizePath(`${resolvedFolder}/${ticketFolder.name}`);
+      if (await this.app.vault.adapter.exists(destination)) {
+        new Notice(`A folder already exists at ${destination}.`);
+        return;
+      }
+      await this.app.fileManager.renameFile(ticketFolder, destination);
+      new Notice(`Resolved ticket: ${ticketFolder.name}`);
+    } catch (err) {
+      console.error('New Ticket plugin failed to resolve ticket', err);
+      new Notice(`Failed to resolve ticket: ${err.message || err}`);
     }
   }
 }
@@ -207,6 +271,21 @@ class NewTicketSettingTab extends PluginSettingTab {
       this.addTagSetting('Tag 2 (optional)', 'tag2', '');
       this.addTagSetting('Tag 3 (optional)', 'tag3', '');
     }
+
+    new Setting(containerEl)
+      .setName('Resolved folder')
+      .setDesc('Subfolder of the tickets folder where resolved tickets are moved.')
+      .addText((text) =>
+        text
+          .setPlaceholder(DEFAULT_SETTINGS.resolvedFolder)
+          .setValue(this.plugin.settings.resolvedFolder)
+          .onChange(async (value) => {
+            this.plugin.settings.resolvedFolder = value.trim() || DEFAULT_SETTINGS.resolvedFolder;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    this.addTagSetting('Resolved tag', 'resolvedTag', DEFAULT_SETTINGS.resolvedTag);
   }
 
   addTagSetting(name, key, placeholder) {
